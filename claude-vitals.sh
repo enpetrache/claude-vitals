@@ -27,7 +27,6 @@ fi
 # ---------- env opt-outs ----------
 NO_GIT="${CLAUDE_VITALS_NO_GIT:-0}"
 NO_RATE="${CLAUDE_VITALS_NO_RATE:-0}"
-NO_CACHE="${CLAUDE_VITALS_NO_CACHE:-0}"
 NO_COLOR="${CLAUDE_VITALS_NO_COLOR:-${NO_COLOR:-0}}"
 
 # ---------- palette (Claude warm theme, truecolor) ----------
@@ -138,62 +137,13 @@ CTX_PCT="${CTX_PCT_RAW%%.*}"
 
 TOTAL_IN="$(jn '.context_window.total_input_tokens')"
 TOTAL_OUT="$(jn '.context_window.total_output_tokens')"
-CURRENT_USAGE_PRESENT="$(j 'if .context_window.current_usage then "1" else "" end')"
 
-COST="$(jn '.cost.total_cost_usd')"
 DURATION_MS="$(jn '.cost.total_duration_ms')"
-API_DURATION_MS_RAW="$(jn '.cost.total_api_duration_ms')"
-# integer for state comparison
-API_DURATION_MS="${API_DURATION_MS_RAW%%.*}"
-[ -z "$API_DURATION_MS" ] && API_DURATION_MS=0
 
 FIVE_H_PCT_RAW="$(j '.rate_limits.five_hour.used_percentage')"
 SEVEN_D_PCT_RAW="$(j '.rate_limits.seven_day.used_percentage')"
 FIVE_H_PCT="${FIVE_H_PCT_RAW%%.*}"
 SEVEN_D_PCT="${SEVEN_D_PCT_RAW%%.*}"
-
-# ---------- cache TTL countdown ----------
-# Detect API call: total_api_duration_ms changes when a real API call happened.
-# Persist last-seen value + unix time of detection in /tmp/claude-vitals-{session}.state.
-CACHE_SEGMENT=""
-if [ "$NO_CACHE" = "0" ]; then
-    STATE_FILE="/tmp/claude-vitals-${SESSION_ID}.state"
-    NOW=$(date +%s)
-    PREV_API_MS=""
-    PREV_API_UNIX=""
-    if [ -f "$STATE_FILE" ]; then
-        # shellcheck disable=SC1090
-        . "$STATE_FILE" 2>/dev/null || true
-        PREV_API_MS="${last_api_duration_ms:-}"
-        PREV_API_UNIX="${last_api_unix:-}"
-    fi
-
-    if [ -z "$PREV_API_MS" ] || [ "$API_DURATION_MS" != "$PREV_API_MS" ]; then
-        # API call observed (or first observation with usage). Reset timer if we
-        # have evidence of a real call: either current_usage present or duration > 0.
-        if [ -n "$CURRENT_USAGE_PRESENT" ] || [ "$API_DURATION_MS" -gt 0 ]; then
-            PREV_API_UNIX="$NOW"
-            printf 'last_api_duration_ms=%s\nlast_api_unix=%s\n' \
-                "$API_DURATION_MS" "$NOW" > "$STATE_FILE" 2>/dev/null || true
-        fi
-    fi
-
-    if [ -n "$PREV_API_UNIX" ]; then
-        ELAPSED=$(( NOW - PREV_API_UNIX ))
-        REMAINING=$(( 300 - ELAPSED ))
-        if [ "$REMAINING" -gt 0 ]; then
-            M=$(( REMAINING / 60 ))
-            S=$(( REMAINING % 60 ))
-            if [ "$REMAINING" -lt 10 ]; then CACHE_COLOR="$C_REDISH"
-            elif [ "$REMAINING" -lt 60 ]; then CACHE_COLOR="$C_AMBER"
-            else CACHE_COLOR="$C_CACHE"
-            fi
-            CACHE_SEGMENT=$(printf '%scache %d:%02d%s' "$CACHE_COLOR" "$M" "$S" "$C_RESET")
-        else
-            CACHE_SEGMENT=$(printf '%scache expired%s' "$C_DIM" "$C_RESET")
-        fi
-    fi
-fi
 
 # ---------- git (cached 5s by session) ----------
 GIT_SEGMENT=""
@@ -236,56 +186,48 @@ fi
 # ---------- segment separator: dim vertical bar with breathing room ----------
 SEP="  ${C_DIM}│${C_RESET}  "
 
-# ---------- line 1: session header ----------
-HEADER_BITS=()
+# ---------- assemble the single status line ----------
+BITS=()
+
 MODEL_TAG="${C_BOLD}${C_BRAND}${MODEL}${C_RESET}"
 [ -n "$EFFORT" ] && MODEL_TAG="${MODEL_TAG} ${C_DIM}${EFFORT}${C_RESET}"
 [ "$THINKING" = "true" ] && MODEL_TAG="${MODEL_TAG} ${C_BRAND_LT}✦${C_RESET}"
-HEADER_BITS+=("$MODEL_TAG")
-HEADER_BITS+=("${C_SOFT}$(truncate_str "$DIR_NAME" 28)${C_RESET}")
-[ -n "$GIT_SEGMENT" ] && HEADER_BITS+=("$GIT_SEGMENT")
+BITS+=("$MODEL_TAG")
+
+[ -n "$GIT_SEGMENT" ] && BITS+=("$GIT_SEGMENT")
+
 TOK_IN_F="$(fmt_tokens "$TOTAL_IN")"
 TOK_OUT_F="$(fmt_tokens "$TOTAL_OUT")"
-HEADER_BITS+=("${C_DIM}${TOK_IN_F}↑ ${TOK_OUT_F}↓${C_RESET}")
+BITS+=("${C_DIM}${TOK_IN_F}↑ ${TOK_OUT_F}↓${C_RESET}")
 
-LINE1=""
-for ((i=0; i<${#HEADER_BITS[@]}; i++)); do
-    if [ $i -gt 0 ]; then LINE1="${LINE1}${SEP}"; fi
-    LINE1="${LINE1}${HEADER_BITS[$i]}"
-done
-
-# ---------- line 2: live metrics ----------
 CTX_COLOR="$(color_for_pct "$CTX_PCT")"
 CTX_BAR="$(make_bar "$CTX_PCT" 10)"
-CTX_SEG="${CTX_COLOR}${CTX_BAR}${C_RESET} ${CTX_COLOR}${CTX_PCT}%${C_RESET}"
+BITS+=("${CTX_COLOR}${CTX_BAR}${C_RESET} ${CTX_COLOR}${CTX_PCT}%${C_RESET}")
 
-COST_SEG="$(printf '%s$%.2f%s' "$C_BRAND" "$COST" "$C_RESET")"
-DUR_SEG="${C_DIM}$(fmt_duration "$DURATION_MS")${C_RESET}"
-
-METRIC_BITS=("$CTX_SEG" "$COST_SEG" "$DUR_SEG")
-[ -n "$CACHE_SEGMENT" ] && METRIC_BITS+=("$CACHE_SEGMENT")
+BITS+=("${C_DIM}$(fmt_duration "$DURATION_MS")${C_RESET}")
 
 if [ "$NO_RATE" = "0" ]; then
     if [ -n "$FIVE_H_PCT" ]; then
         C5="$(color_for_pct "$FIVE_H_PCT")"
         B5="$(make_bar "$FIVE_H_PCT" 5)"
-        METRIC_BITS+=("${C_DIM}5h${C_RESET} ${C5}${B5} ${FIVE_H_PCT}%${C_RESET}")
+        BITS+=("${C_DIM}5h${C_RESET} ${C5}${B5} ${FIVE_H_PCT}%${C_RESET}")
     fi
     if [ -n "$SEVEN_D_PCT" ]; then
         C7="$(color_for_pct "$SEVEN_D_PCT")"
         B7="$(make_bar "$SEVEN_D_PCT" 5)"
-        METRIC_BITS+=("${C_DIM}7d${C_RESET} ${C7}${B7} ${SEVEN_D_PCT}%${C_RESET}")
+        BITS+=("${C_DIM}7d${C_RESET} ${C7}${B7} ${SEVEN_D_PCT}%${C_RESET}")
     fi
 fi
 
-LINE2=""
-for ((i=0; i<${#METRIC_BITS[@]}; i++)); do
-    if [ $i -gt 0 ]; then LINE2="${LINE2}${SEP}"; fi
-    LINE2="${LINE2}${METRIC_BITS[$i]}"
+LINE=""
+for ((i=0; i<${#BITS[@]}; i++)); do
+    if [ $i -gt 0 ]; then LINE="${LINE}${SEP}"; fi
+    LINE="${LINE}${BITS[$i]}"
 done
 
 # ---------- output ----------
-# Leading blank line gives vertical breathing room from Claude's UI rows.
+# Leading blank row separates from the row above; trailing blank row
+# pushes Claude Code's "bypass permissions" indicator one row down.
 printf '\n'
-printf '%b\n' "$LINE1"
-printf '%b\n' "$LINE2"
+printf '%b\n' "$LINE"
+printf '\n'

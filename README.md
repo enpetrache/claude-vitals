@@ -1,24 +1,21 @@
 # claude-vitals
 
-> **Always-on token, cost, cache, and rate-limit metrics inside Claude Code.**
-> Inspired by [`claude-pulse`](https://github.com/samirpatil2000/claude-pulse) (browser extension for claude.ai), built for the terminal.
+> **A single-line, always-on health bar for your Claude Code session — context, branch, tokens, duration, and rate limits.**
 
 ```
-Opus xhigh ✦  opensource_terminal  ⎇ main ~1  42.5k↑ 53.7k↓
-█░░░░░░░░░ 13%  $5.15  38m24s  cache 4:13  5h ███░░ 79%  7d ██░░░ 55%
+Opus xhigh ✦  │  ⎇ main ~1  │  42.5k↑ 79.8k↓  │  █░░░░░░░░░ 17%  │  51m12s  │  5h ████░ 90%  │  7d ██░░░ 56%
 ```
 
-Warm Claude-themed palette (truecolor), no clutter emojis, two-space gaps, monotone bars. Best in a terminal with truecolor and a font that includes `⎇` and `✦` (most modern terminals do).
+Warm Claude-themed palette (truecolor), terminal-native glyphs, dim `│` dividers between segments. Best in a terminal with truecolor support and a font that includes `⎇` and `✦` (most modern terminals do).
 
 ## What it shows
 
-- **Context window bar** — coloured by threshold (sage / amber / red).
-- **Cumulative tokens** in / out for the session, in human format (`1.2M`, `12.3k`).
-- **Session cost** in USD.
+- **Model · effort · thinking** indicator (`✦` when extended thinking is on).
+- **Git branch** with `+staged ~modified` counts.
+- **Cumulative session tokens** in / out, in human format (`1.2M`, `12.3k`).
+- **Context window bar** with percent — coloured by threshold (sage / amber / red).
 - **Wall-clock duration** since session start.
-- **Cache TTL countdown** — how many seconds until the 5-minute prompt cache expires (the unique trick from claude-pulse, ported to the CLI).
-- **5-hour and 7-day rate-limit usage** for Pro/Max subscribers, with mini-bars.
-- **Model · effort · thinking** indicator, working directory, and git branch with `+staged ~modified` counts.
+- **5-hour and 7-day rate-limit bars** (Pro/Max subscribers).
 
 Single bash script, single dependency (`jq`). Runs only in your terminal — no network, no telemetry.
 
@@ -46,36 +43,30 @@ Then restart Claude Code (or open a new session). Accept the workspace trust pro
    }
    ```
 
-`refreshInterval: 5` keeps the cache countdown ticking while you are idle. Drop it if you only want updates after assistant messages.
+`refreshInterval: 5` keeps the duration ticking while you are idle. Drop it if you only want updates after assistant messages.
 
 ## Customise
 
 Set environment variables before launching `claude`:
 
-| Variable               | Effect                                               |
-|------------------------|------------------------------------------------------|
-| `CLAUDE_VITALS_NO_GIT=1`  | Hide the git branch / staged / modified segment.     |
-| `CLAUDE_VITALS_NO_RATE=1` | Hide the 5-hour / 7-day rate-limit bars.             |
-| `CLAUDE_VITALS_NO_CACHE=1`| Hide the prompt-cache TTL countdown.                 |
-| `CLAUDE_VITALS_NO_COLOR=1` | Disable ANSI colours (also honours `NO_COLOR`).     |
+| Variable                    | Effect                                            |
+|-----------------------------|---------------------------------------------------|
+| `CLAUDE_VITALS_NO_GIT=1`    | Hide the git branch / staged / modified segment. |
+| `CLAUDE_VITALS_NO_RATE=1`   | Hide the 5-hour / 7-day rate-limit bars.         |
+| `CLAUDE_VITALS_NO_COLOR=1`  | Disable ANSI colours (also honours `NO_COLOR`).  |
 
 ## How it works
 
-Claude Code's [statusLine](https://code.claude.com/docs/en/statusline) feature pipes a JSON blob to your script after every assistant message and (with `refreshInterval`) on a timer. `claude-vitals.sh` parses that JSON and prints two lines.
+Claude Code's [statusLine](https://code.claude.com/docs/en/statusline) feature pipes a JSON blob to your script after every assistant message and (with `refreshInterval`) on a timer. `claude-vitals.sh` parses that JSON and prints one line, padded above and below with a blank row so it breathes against the surrounding Claude Code UI.
 
-| Segment                | Source field                                                                |
-|------------------------|-----------------------------------------------------------------------------|
-| Model / effort / 🧠    | `model.display_name`, `effort.level`, `thinking.enabled`                    |
-| `📁` directory          | `workspace.current_dir`                                                     |
-| `🌿` branch             | `git branch --show-current` in `workspace.current_dir`                      |
-| `↑↓` tokens             | `context_window.total_input_tokens`, `total_output_tokens`                  |
-| Context bar / `% ctx`  | `context_window.used_percentage`                                            |
-| `$cost`                | `cost.total_cost_usd`                                                       |
-| `⏱`                    | `cost.total_duration_ms`                                                    |
-| `⚡cache M:SS`          | inferred from changes in `cost.total_api_duration_ms` (5-min TTL)           |
-| `5h`/`7d` bars         | `rate_limits.five_hour.used_percentage`, `rate_limits.seven_day.used_percentage` |
-
-The cache countdown deserves a note: Claude Code does not expose a "last API request" timestamp directly, but `cost.total_api_duration_ms` strictly increases each time the model is hit. `claude-vitals` records the value plus the wall-clock time in `/tmp/claude-vitals-<session_id>.state`; whenever the value changes, the timer resets. Idle ticks (every `refreshInterval` seconds) read the same state and decrement the displayed countdown.
+| Segment             | Source field                                                                     |
+|---------------------|----------------------------------------------------------------------------------|
+| Model · effort · ✦  | `model.display_name`, `effort.level`, `thinking.enabled`                         |
+| `⎇` branch + counts | `git branch --show-current` and `git diff --numstat` in `workspace.current_dir`  |
+| `↑↓` tokens         | `context_window.total_input_tokens`, `total_output_tokens`                       |
+| Context bar / `%`   | `context_window.used_percentage`                                                 |
+| Duration            | `cost.total_duration_ms`                                                         |
+| `5h` / `7d` bars    | `rate_limits.five_hour.used_percentage`, `rate_limits.seven_day.used_percentage` |
 
 Git status is cached in `/tmp/claude-vitals-git-<session_id>` for ~5 seconds so large repos stay responsive.
 
@@ -83,9 +74,8 @@ Git status is cached in `/tmp/claude-vitals-git-<session_id>` for ~5 seconds so 
 
 - **The bar is blank** — run `claude --debug` and look for the statusLine command's exit code and stderr. Usually it is the workspace trust prompt; restart Claude Code and accept it.
 - **`jq: command not found`** — install jq.
-- **`⚡cache` never appears** — the segment only shows once Claude Code has made at least one API call in the session.
 - **No `5h` / `7d` bars** — those fields are only present for Pro/Max subscribers, after the first API response.
-- **Want different thresholds / colours** — edit `claude-vitals.sh`; the colour and threshold logic is in `color_for_pct()` and the cache section near the top.
+- **Want different thresholds / colours** — edit `claude-vitals.sh`; the colour and threshold logic is in `color_for_pct()` near the top.
 
 ## Tested with
 
