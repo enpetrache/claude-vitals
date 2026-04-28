@@ -6,7 +6,7 @@
 > **A single-line, always-on health bar for your Claude Code session — context, branch, tokens, duration, and rate limits.**
 
 ```
-Opus xhigh ✦  │  ⎇ main ~1  │  142.3k↑ 95.2k↓  │  ▓▓▓▓▓▓░░░░ 60%  │  51m12s  │  5h ▓▓▓▓░ 88% (4h17m)  │  7d ▓▓░░░ 23% (2d 14h)
+Opus high ✦  │  ⎇ main ~1  │  142.3k↑ 95.2k↓  │  ▓▓▓▓▓▓░░░░ 60%  │  51m12s  │  5h ▓▓▓▓░ 88% (4h17m)  │  7d ▓▓░░░ 23% (2d 14h)
 ```
 
 > The block above is a plain-text mockup; in the terminal the bars are **coloured** by threshold (sage → amber → red) and the dividers are dim warm-gray. This README sample uses `▓░` instead of `█░` because heavy block characters look unbalanced without colour.
@@ -32,13 +32,27 @@ curl -fsSL https://raw.githubusercontent.com/enpetrache/claude-vitals/main/insta
 
 The installer:
 
+- offers to install `jq` for you if it's missing (via `brew` / `apt` / `dnf` / `pacman` / `apk` / `zypper` / `winget` / `scoop` / `choco`, with a confirmation prompt),
 - drops `claude-vitals.sh` into `~/.claude/claude-vitals/`,
-- adds a `statusLine` block to `~/.claude/settings.json` (existing keys are preserved; any prior `statusLine` is backed up next to the file), and
-- sets `refreshInterval: 5` so time-based segments tick while you're idle.
+- adds a `statusLine` block to `~/.claude/settings.json` (existing keys are preserved; any prior `statusLine` is backed up next to the file),
+- sets `refreshInterval: 5` so time-based segments tick while you're idle, and
+- runs a self-test against a mock payload to confirm the script works on your machine.
 
 Then restart Claude Code (or open a new session). Accept the workspace trust prompt the first time.
 
 > **Windows**: run the same one-liner from **Git Bash** — that's the shell Claude Code itself uses to invoke statusLine commands on Windows.
+
+### Update / uninstall
+
+```bash
+# update the script (settings.json is left alone)
+curl -fsSL https://raw.githubusercontent.com/enpetrache/claude-vitals/main/install.sh | bash -s -- --update
+
+# remove the script and unwire settings.json (a backup is saved next to settings.json)
+curl -fsSL https://raw.githubusercontent.com/enpetrache/claude-vitals/main/install.sh | bash -s -- --uninstall
+```
+
+If you cloned the repo, `bash install.sh --update` and `bash install.sh --uninstall` work the same way.
 
 ### Manual install
 
@@ -82,19 +96,18 @@ Claude Code's [statusLine](https://code.claude.com/docs/en/statusline) feature p
 | `5h` / `7d` bars    | `rate_limits.five_hour.used_percentage`, `rate_limits.seven_day.used_percentage` |
 | `(4h17m)` reset     | `rate_limits.five_hour.resets_at`, `rate_limits.seven_day.resets_at` (Unix epoch) |
 
-Git status is cached in `/tmp/claude-vitals-git-<session_id>` for ~5 seconds so large repos stay responsive.
+Git status is cached in `${TMPDIR:-/tmp}/claude-vitals-<uid>-git-<session_id>` for ~5 seconds so large repos stay responsive. The `session_id` is sanitised to `[A-Za-z0-9_-]` before use.
 
 ## Troubleshooting
 
 - **The bar is blank** — run `claude --debug` and look for the statusLine command's exit code and stderr. Usually it is the workspace trust prompt; restart Claude Code and accept it.
-- **`jq: command not found`** — install jq.
-- **`bash 4+ required` (macOS)** — Apple still ships bash 3.2; run `brew install bash` and re-run the installer.
+- **`jq: command not found`** — re-run the installer; it will offer to install `jq` for you. Or install it manually (`brew install jq`, `sudo apt install jq`, etc.).
 - **No `5h` / `7d` bars** — those fields are only present for Pro/Max subscribers, after the first API response.
 - **Want different thresholds / colours** — edit `claude-vitals.sh`; the colour and threshold logic is in `color_for_pct()` near the top.
 
 ## Supported platforms
 
-- **Linux**, **macOS**, and **Windows via Git Bash** — the same shell Claude Code itself uses to run statusLine commands. Requires bash 4+ (so on macOS, install with `brew install bash` since the system ships bash 3.2).
+- **Linux**, **macOS**, and **Windows via Git Bash** — the same shell Claude Code itself uses to run statusLine commands. Works with bash 3.2+, so the stock `/bin/bash` on macOS is fine — no `brew install bash` needed.
 - Best in a terminal that supports 24-bit truecolor (modern Windows Terminal, iTerm2, kitty, GNOME Terminal, VS Code's integrated terminal). Without truecolor, set `CLAUDE_VITALS_NO_COLOR=1`.
 - tmux sessions work fine.
 

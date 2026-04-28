@@ -131,6 +131,9 @@ truncate_str() {
 
 # ---------- extract fields ----------
 SESSION_ID="$(j '.session_id')"
+# Strip anything other than [A-Za-z0-9_-] so an untrusted session_id can't
+# escape the cache directory via path traversal (e.g. "../../etc/passwd").
+SESSION_ID="${SESSION_ID//[^A-Za-z0-9_-]/}"
 [ -z "$SESSION_ID" ] && SESSION_ID="default"
 
 MODEL_FULL="$(j '.model.display_name')"
@@ -169,7 +172,9 @@ SEVEN_D_RESET_AT="${SEVEN_D_RESET_AT%%.*}"
 # ---------- git (cached 5s by session) ----------
 GIT_SEGMENT=""
 if [ "$NO_GIT" = "0" ] && [ -n "$CWD" ] && [ -d "$CWD" ]; then
-    GIT_CACHE="/tmp/claude-vitals-git-${SESSION_ID}"
+    # User-scoped, in $TMPDIR when set, to avoid collisions on shared hosts.
+    CACHE_DIR="${TMPDIR:-/tmp}"
+    GIT_CACHE="${CACHE_DIR%/}/claude-vitals-$(id -u 2>/dev/null || echo 0)-git-${SESSION_ID}"
     NEED_REFRESH=1
     if [ -f "$GIT_CACHE" ]; then
         # GNU stat: -c %Y. BSD/macOS stat: -f %m. Try both, fall back to 0 (stale).
@@ -264,5 +269,8 @@ done
 # the statusline output doesn't collapse it — that would re-glue the
 # 'bypass permissions on' indicator to our last data row.
 printf '\n'
-printf '%b\n' "$LINE"
+# %s (not %b) so backslash sequences in JSON-derived fields (model name,
+# branch, effort) can't be reinterpreted as ANSI escapes. Our own colour
+# variables already hold real ESC bytes from $'\033[…]m'.
+printf '%s\n' "$LINE"
 printf '\xe2\x80\x8b\n'
