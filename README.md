@@ -4,13 +4,15 @@
 > Inspired by [`claude-pulse`](https://github.com/samirpatil2000/claude-pulse) (browser extension for claude.ai), built for the terminal.
 
 ```
-[Opus·high·🧠] · 📁 my-repo · 🌿 main +2 ~5 · 152.3k↑ 45.2k↓
-███████░░░ 78% ctx · $1.24 · ⏱ 12m18s · ⚡cache 4:21 · 5h ▓▓▓░░ 41% · 7d ▓░░░░ 23%
+Opus xhigh ✦  opensource_terminal  ⎇ main ~1  42.5k↑ 53.7k↓
+█░░░░░░░░░ 13%  $5.15  38m24s  cache 4:13  5h ███░░ 79%  7d ██░░░ 55%
 ```
+
+Warm Claude-themed palette (truecolor), no clutter emojis, two-space gaps, monotone bars. Best in a terminal with truecolor and a font that includes `⎇` and `✦` (most modern terminals do).
 
 ## What it shows
 
-- **Context window bar** — coloured by threshold (green / yellow / red).
+- **Context window bar** — coloured by threshold (sage / amber / red).
 - **Cumulative tokens** in / out for the session, in human format (`1.2M`, `12.3k`).
 - **Session cost** in USD.
 - **Wall-clock duration** since session start.
