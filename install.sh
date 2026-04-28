@@ -1,27 +1,27 @@
 #!/usr/bin/env bash
-# pulse-term installer
-# Installs pulse-term.sh into ~/.claude/pulse-term/ and wires up settings.json.
+# claude-vitals installer
+# Installs claude-vitals.sh into ~/.claude/claude-vitals/ and wires up settings.json.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/<user>/pulse-term/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/<user>/claude-vitals/main/install.sh | bash
 # or, locally:
 #   bash install.sh
 
 set -euo pipefail
 
-REPO_RAW_URL="${PULSE_TERM_REPO_RAW:-https://raw.githubusercontent.com/REPLACE_ME/pulse-term/main}"
-INSTALL_DIR="${HOME}/.claude/pulse-term"
+REPO_RAW_URL="${CLAUDE_VITALS_REPO_RAW:-https://raw.githubusercontent.com/REPLACE_ME/claude-vitals/main}"
+INSTALL_DIR="${HOME}/.claude/claude-vitals"
 SETTINGS_FILE="${HOME}/.claude/settings.json"
-SCRIPT_NAME="pulse-term.sh"
+SCRIPT_NAME="claude-vitals.sh"
 COMMAND_PATH="${INSTALL_DIR}/${SCRIPT_NAME}"
 
 C_BOLD=$'\033[1m'; C_GREEN=$'\033[32m'; C_RED=$'\033[31m'
 C_YELLOW=$'\033[33m'; C_DIM=$'\033[2m'; C_RESET=$'\033[0m'
 
-say()  { printf '%bpulse-term%b %s\n' "$C_BOLD" "$C_RESET" "$1"; }
-warn() { printf '%bpulse-term%b %b!%b %s\n' "$C_BOLD" "$C_RESET" "$C_YELLOW" "$C_RESET" "$1"; }
-err()  { printf '%bpulse-term%b %b✖%b %s\n' "$C_BOLD" "$C_RESET" "$C_RED" "$C_RESET" "$1" >&2; }
-ok()   { printf '%bpulse-term%b %b✓%b %s\n' "$C_BOLD" "$C_RESET" "$C_GREEN" "$C_RESET" "$1"; }
+say()  { printf '%bclaude-vitals%b %s\n' "$C_BOLD" "$C_RESET" "$1"; }
+warn() { printf '%bclaude-vitals%b %b!%b %s\n' "$C_BOLD" "$C_RESET" "$C_YELLOW" "$C_RESET" "$1"; }
+err()  { printf '%bclaude-vitals%b %b✖%b %s\n' "$C_BOLD" "$C_RESET" "$C_RED" "$C_RESET" "$1" >&2; }
+ok()   { printf '%bclaude-vitals%b %b✓%b %s\n' "$C_BOLD" "$C_RESET" "$C_GREEN" "$C_RESET" "$1"; }
 
 # ---------- check jq ----------
 if ! command -v jq >/dev/null 2>&1; then
@@ -63,7 +63,7 @@ fi
 # back up if a statusLine already exists
 EXISTING="$(jq '.statusLine // empty' "$SETTINGS_FILE" 2>/dev/null || echo '')"
 if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
-    BACKUP="${SETTINGS_FILE}.pulse-term.bak.$(date +%s)"
+    BACKUP="${SETTINGS_FILE}.claude-vitals.bak.$(date +%s)"
     cp "$SETTINGS_FILE" "$BACKUP"
     warn "existing statusLine backed up → $BACKUP"
 fi
@@ -79,7 +79,7 @@ ok "settings.json updated → statusLine wired to $COMMAND_PATH"
 
 # ---------- done ----------
 printf '\n'
-ok "pulse-term installed."
+ok "claude-vitals installed."
 printf '%bRestart Claude Code or open a new session.%b\n' "$C_DIM" "$C_RESET"
 printf '%bIf the bar does not appear, accept the workspace trust prompt and run %sclaude --debug%s.%b\n' \
     "$C_DIM" "$C_BOLD" "$C_RESET$C_DIM" "$C_RESET"

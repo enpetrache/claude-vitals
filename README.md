@@ -1,4 +1,4 @@
-# pulse-term
+# claude-vitals
 
 > **Always-on token, cost, cache, and rate-limit metrics inside Claude Code.**
 > Inspired by [`claude-pulse`](https://github.com/samirpatil2000/claude-pulse) (browser extension for claude.ai), built for the terminal.
@@ -23,7 +23,7 @@ Single bash script, single dependency (`jq`). Runs only in your terminal — no 
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/REPLACE_ME/pulse-term/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/REPLACE_ME/claude-vitals/main/install.sh | bash
 ```
 
 Then restart Claude Code (or open a new session). Accept the workspace trust prompt the first time.
@@ -31,13 +31,13 @@ Then restart Claude Code (or open a new session). Accept the workspace trust pro
 ### Manual install
 
 1. Make sure `jq` is on your PATH (`brew install jq` / `sudo apt install jq`).
-2. Copy `pulse-term.sh` to `~/.claude/pulse-term/pulse-term.sh` and `chmod +x` it.
+2. Copy `claude-vitals.sh` to `~/.claude/claude-vitals/claude-vitals.sh` and `chmod +x` it.
 3. Add this to `~/.claude/settings.json`:
    ```json
    {
      "statusLine": {
        "type": "command",
-       "command": "~/.claude/pulse-term/pulse-term.sh",
+       "command": "~/.claude/claude-vitals/claude-vitals.sh",
        "padding": 1,
        "refreshInterval": 5
      }
@@ -52,14 +52,14 @@ Set environment variables before launching `claude`:
 
 | Variable               | Effect                                               |
 |------------------------|------------------------------------------------------|
-| `PULSE_TERM_NO_GIT=1`  | Hide the git branch / staged / modified segment.     |
-| `PULSE_TERM_NO_RATE=1` | Hide the 5-hour / 7-day rate-limit bars.             |
-| `PULSE_TERM_NO_CACHE=1`| Hide the prompt-cache TTL countdown.                 |
-| `PULSE_TERM_NO_COLOR=1` | Disable ANSI colours (also honours `NO_COLOR`).     |
+| `CLAUDE_VITALS_NO_GIT=1`  | Hide the git branch / staged / modified segment.     |
+| `CLAUDE_VITALS_NO_RATE=1` | Hide the 5-hour / 7-day rate-limit bars.             |
+| `CLAUDE_VITALS_NO_CACHE=1`| Hide the prompt-cache TTL countdown.                 |
+| `CLAUDE_VITALS_NO_COLOR=1` | Disable ANSI colours (also honours `NO_COLOR`).     |
 
 ## How it works
 
-Claude Code's [statusLine](https://code.claude.com/docs/en/statusline) feature pipes a JSON blob to your script after every assistant message and (with `refreshInterval`) on a timer. `pulse-term.sh` parses that JSON and prints two lines.
+Claude Code's [statusLine](https://code.claude.com/docs/en/statusline) feature pipes a JSON blob to your script after every assistant message and (with `refreshInterval`) on a timer. `claude-vitals.sh` parses that JSON and prints two lines.
 
 | Segment                | Source field                                                                |
 |------------------------|-----------------------------------------------------------------------------|
@@ -73,9 +73,9 @@ Claude Code's [statusLine](https://code.claude.com/docs/en/statusline) feature p
 | `⚡cache M:SS`          | inferred from changes in `cost.total_api_duration_ms` (5-min TTL)           |
 | `5h`/`7d` bars         | `rate_limits.five_hour.used_percentage`, `rate_limits.seven_day.used_percentage` |
 
-The cache countdown deserves a note: Claude Code does not expose a "last API request" timestamp directly, but `cost.total_api_duration_ms` strictly increases each time the model is hit. `pulse-term` records the value plus the wall-clock time in `/tmp/pulse-term-<session_id>.state`; whenever the value changes, the timer resets. Idle ticks (every `refreshInterval` seconds) read the same state and decrement the displayed countdown.
+The cache countdown deserves a note: Claude Code does not expose a "last API request" timestamp directly, but `cost.total_api_duration_ms` strictly increases each time the model is hit. `claude-vitals` records the value plus the wall-clock time in `/tmp/claude-vitals-<session_id>.state`; whenever the value changes, the timer resets. Idle ticks (every `refreshInterval` seconds) read the same state and decrement the displayed countdown.
 
-Git status is cached in `/tmp/pulse-term-git-<session_id>` for ~5 seconds so large repos stay responsive.
+Git status is cached in `/tmp/claude-vitals-git-<session_id>` for ~5 seconds so large repos stay responsive.
 
 ## Troubleshooting
 
@@ -83,7 +83,7 @@ Git status is cached in `/tmp/pulse-term-git-<session_id>` for ~5 seconds so lar
 - **`jq: command not found`** — install jq.
 - **`⚡cache` never appears** — the segment only shows once Claude Code has made at least one API call in the session.
 - **No `5h` / `7d` bars** — those fields are only present for Pro/Max subscribers, after the first API response.
-- **Want different thresholds / colours** — edit `pulse-term.sh`; the colour and threshold logic is in `color_for_pct()` and the cache section near the top.
+- **Want different thresholds / colours** — edit `claude-vitals.sh`; the colour and threshold logic is in `color_for_pct()` and the cache section near the top.
 
 ## Tested with
 

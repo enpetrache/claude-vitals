@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# pulse-term — claude-pulse-style statusline for Claude Code
+# claude-vitals — claude-pulse-style statusline for Claude Code
 # Reads Claude Code statusLine JSON on stdin, prints two info-dense lines.
 # Dependencies: bash >= 4, jq
 
@@ -11,15 +11,15 @@ INPUT="$(cat)"
 
 # Bail out softly if jq is missing — output a hint instead of crashing.
 if ! command -v jq >/dev/null 2>&1; then
-    printf '%b\n' '\033[33m[pulse-term] jq not installed — see https://jqlang.github.io/jq/\033[0m'
+    printf '%b\n' '\033[33m[claude-vitals] jq not installed — see https://jqlang.github.io/jq/\033[0m'
     exit 0
 fi
 
 # ---------- env opt-outs ----------
-NO_GIT="${PULSE_TERM_NO_GIT:-0}"
-NO_RATE="${PULSE_TERM_NO_RATE:-0}"
-NO_CACHE="${PULSE_TERM_NO_CACHE:-0}"
-NO_COLOR="${PULSE_TERM_NO_COLOR:-${NO_COLOR:-0}}"
+NO_GIT="${CLAUDE_VITALS_NO_GIT:-0}"
+NO_RATE="${CLAUDE_VITALS_NO_RATE:-0}"
+NO_CACHE="${CLAUDE_VITALS_NO_CACHE:-0}"
+NO_COLOR="${CLAUDE_VITALS_NO_COLOR:-${NO_COLOR:-0}}"
 
 # ---------- ANSI ----------
 if [ "$NO_COLOR" = "0" ]; then
@@ -141,10 +141,10 @@ SEVEN_D_PCT="${SEVEN_D_PCT_RAW%%.*}"
 
 # ---------- cache TTL countdown ----------
 # Detect API call: total_api_duration_ms changes when a real API call happened.
-# Persist last-seen value + unix time of detection in /tmp/pulse-term-{session}.state.
+# Persist last-seen value + unix time of detection in /tmp/claude-vitals-{session}.state.
 CACHE_SEGMENT=""
 if [ "$NO_CACHE" = "0" ]; then
-    STATE_FILE="/tmp/pulse-term-${SESSION_ID}.state"
+    STATE_FILE="/tmp/claude-vitals-${SESSION_ID}.state"
     NOW=$(date +%s)
     PREV_API_MS=""
     PREV_API_UNIX=""
@@ -185,7 +185,7 @@ fi
 # ---------- git (cached 5s by session) ----------
 GIT_SEGMENT=""
 if [ "$NO_GIT" = "0" ] && [ -n "$CWD" ] && [ -d "$CWD" ]; then
-    GIT_CACHE="/tmp/pulse-term-git-${SESSION_ID}"
+    GIT_CACHE="/tmp/claude-vitals-git-${SESSION_ID}"
     NEED_REFRESH=1
     if [ -f "$GIT_CACHE" ]; then
         if [ -n "$(find "$GIT_CACHE" -mmin -0.084 2>/dev/null)" ]; then
