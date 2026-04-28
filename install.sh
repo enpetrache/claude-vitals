@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-REPO_RAW_URL="${CLAUDE_VITALS_REPO_RAW:-https://raw.githubusercontent.com/REPLACE_ME/claude-vitals/main}"
+REPO_RAW_URL="${CLAUDE_VITALS_REPO_RAW:-https://raw.githubusercontent.com/enpetrache/claude-vitals/main}"
 INSTALL_DIR="${HOME}/.claude/claude-vitals"
 SETTINGS_FILE="${HOME}/.claude/settings.json"
 SCRIPT_NAME="claude-vitals.sh"

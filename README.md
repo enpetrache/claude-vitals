@@ -23,7 +23,7 @@ Single bash script, single dependency (`jq`). Runs only in your terminal — no 
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/REPLACE_ME/claude-vitals/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/enpetrache/claude-vitals/main/install.sh | bash
 ```
 
 Then restart Claude Code (or open a new session). Accept the workspace trust prompt the first time.
