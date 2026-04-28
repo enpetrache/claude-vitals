@@ -23,9 +23,17 @@ warn() { printf '%bclaude-vitals%b %b!%b %s\n' "$C_BOLD" "$C_RESET" "$C_YELLOW" 
 err()  { printf '%bclaude-vitals%b %b✖%b %s\n' "$C_BOLD" "$C_RESET" "$C_RED" "$C_RESET" "$1" >&2; }
 ok()   { printf '%bclaude-vitals%b %b✓%b %s\n' "$C_BOLD" "$C_RESET" "$C_GREEN" "$C_RESET" "$1"; }
 
-# ---------- check jq ----------
-if ! command -v jq >/dev/null 2>&1; then
-    err "jq is required but not found in PATH."
+# ---------- locate jq ----------
+JQ_BIN=""
+if command -v jq >/dev/null 2>&1; then
+    JQ_BIN="$(command -v jq)"
+else
+    for c in "$HOME/.local/bin/jq" /opt/homebrew/bin/jq /usr/local/bin/jq /opt/local/bin/jq; do
+        if [ -x "$c" ]; then JQ_BIN="$c"; break; fi
+    done
+fi
+if [ -z "$JQ_BIN" ]; then
+    err "jq is required but not found in PATH or common install dirs."
     case "$(uname -s)" in
         Darwin) printf '   Try: %sbrew install jq%s\n' "$C_BOLD" "$C_RESET" ;;
         Linux)  printf '   Try: %ssudo apt install jq%s  (or your package manager)\n' "$C_BOLD" "$C_RESET" ;;
@@ -61,19 +69,19 @@ if [ ! -f "$SETTINGS_FILE" ]; then
 fi
 
 # back up if a statusLine already exists
-EXISTING="$(jq '.statusLine // empty' "$SETTINGS_FILE" 2>/dev/null || echo '')"
+EXISTING="$("$JQ_BIN" '.statusLine // empty' "$SETTINGS_FILE" 2>/dev/null || echo '')"
 if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
     BACKUP="${SETTINGS_FILE}.claude-vitals.bak.$(date +%s)"
     cp "$SETTINGS_FILE" "$BACKUP"
     warn "existing statusLine backed up → $BACKUP"
 fi
 
-NEW_BLOCK=$(jq -n \
+NEW_BLOCK=$("$JQ_BIN" -n \
     --arg cmd "$COMMAND_PATH" \
     '{type: "command", command: $cmd, padding: 1, refreshInterval: 5}')
 
 TMP="$(mktemp)"
-jq --argjson sl "$NEW_BLOCK" '.statusLine = $sl' "$SETTINGS_FILE" > "$TMP"
+"$JQ_BIN" --argjson sl "$NEW_BLOCK" '.statusLine = $sl' "$SETTINGS_FILE" > "$TMP"
 mv "$TMP" "$SETTINGS_FILE"
 ok "settings.json updated → statusLine wired to $COMMAND_PATH"
 

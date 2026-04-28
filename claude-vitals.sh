@@ -9,8 +9,17 @@ set -uo pipefail
 INPUT="$(cat)"
 [ -z "$INPUT" ] && exit 0
 
-# Bail out softly if jq is missing — output a hint instead of crashing.
-if ! command -v jq >/dev/null 2>&1; then
+# Locate jq. Fall back to common install paths so the script still works when
+# Claude Code spawns it from a shell that doesn't include them on PATH.
+JQ_BIN=""
+if command -v jq >/dev/null 2>&1; then
+    JQ_BIN="$(command -v jq)"
+else
+    for c in "$HOME/.local/bin/jq" /opt/homebrew/bin/jq /usr/local/bin/jq /opt/local/bin/jq; do
+        if [ -x "$c" ]; then JQ_BIN="$c"; break; fi
+    done
+fi
+if [ -z "$JQ_BIN" ]; then
     printf '%b\n' '\033[33m[claude-vitals] jq not installed — see https://jqlang.github.io/jq/\033[0m'
     exit 0
 fi
@@ -39,9 +48,9 @@ fi
 
 # ---------- helpers ----------
 # extract a field with jq, defaulting to empty string when null/missing
-j() { printf '%s' "$INPUT" | jq -r "$1 // empty" 2>/dev/null; }
+j() { printf '%s' "$INPUT" | "$JQ_BIN" -r "$1 // empty" 2>/dev/null; }
 # extract a numeric field, defaulting to 0
-jn() { printf '%s' "$INPUT" | jq -r "$1 // 0" 2>/dev/null; }
+jn() { printf '%s' "$INPUT" | "$JQ_BIN" -r "$1 // 0" 2>/dev/null; }
 
 # format integer tokens compactly: 12345 -> 12.3k, 1234567 -> 1.23M
 fmt_tokens() {
