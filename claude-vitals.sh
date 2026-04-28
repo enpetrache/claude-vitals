@@ -79,6 +79,24 @@ fmt_duration() {
     fi
 }
 
+# format "time until" in seconds -> "2d5h" / "4h30m" / "23m" / "now"
+fmt_until() {
+    local secs="${1:-0}"
+    if [ "$secs" -le 0 ]; then printf 'now'; return; fi
+    local d=$(( secs / 86400 ))
+    local h=$(( (secs % 86400) / 3600 ))
+    local m=$(( (secs % 3600) / 60 ))
+    if [ "$d" -gt 0 ]; then
+        printf '%dd%dh' "$d" "$h"
+    elif [ "$h" -gt 0 ]; then
+        printf '%dh%dm' "$h" "$m"
+    elif [ "$m" -gt 0 ]; then
+        printf '%dm' "$m"
+    else
+        printf '%ds' "$secs"
+    fi
+}
+
 # choose color by percent (0-100), green/yellow/red threshold
 color_for_pct() {
     local pct="${1:-0}"
@@ -144,6 +162,10 @@ FIVE_H_PCT_RAW="$(j '.rate_limits.five_hour.used_percentage')"
 SEVEN_D_PCT_RAW="$(j '.rate_limits.seven_day.used_percentage')"
 FIVE_H_PCT="${FIVE_H_PCT_RAW%%.*}"
 SEVEN_D_PCT="${SEVEN_D_PCT_RAW%%.*}"
+FIVE_H_RESET_AT="$(j '.rate_limits.five_hour.resets_at')"
+SEVEN_D_RESET_AT="$(j '.rate_limits.seven_day.resets_at')"
+FIVE_H_RESET_AT="${FIVE_H_RESET_AT%%.*}"
+SEVEN_D_RESET_AT="${SEVEN_D_RESET_AT%%.*}"
 
 # ---------- git (cached 5s by session) ----------
 GIT_SEGMENT=""
@@ -207,15 +229,26 @@ BITS+=("${CTX_COLOR}${CTX_BAR}${C_RESET} ${CTX_COLOR}${CTX_PCT}%${C_RESET}")
 BITS+=("${C_DIM}$(fmt_duration "$DURATION_MS")${C_RESET}")
 
 if [ "$NO_RATE" = "0" ]; then
+    NOW_TS=$(date +%s)
     if [ -n "$FIVE_H_PCT" ]; then
         C5="$(color_for_pct "$FIVE_H_PCT")"
         B5="$(make_bar "$FIVE_H_PCT" 5)"
-        BITS+=("${C_DIM}5h${C_RESET} ${C5}${B5} ${FIVE_H_PCT}%${C_RESET}")
+        SEG_5H="${C_DIM}5h${C_RESET} ${C5}${B5} ${FIVE_H_PCT}%${C_RESET}"
+        if [ -n "$FIVE_H_RESET_AT" ]; then
+            UNTIL5=$(fmt_until $(( FIVE_H_RESET_AT - NOW_TS )))
+            SEG_5H="${SEG_5H} ${C_DIM}(${UNTIL5})${C_RESET}"
+        fi
+        BITS+=("$SEG_5H")
     fi
     if [ -n "$SEVEN_D_PCT" ]; then
         C7="$(color_for_pct "$SEVEN_D_PCT")"
         B7="$(make_bar "$SEVEN_D_PCT" 5)"
-        BITS+=("${C_DIM}7d${C_RESET} ${C7}${B7} ${SEVEN_D_PCT}%${C_RESET}")
+        SEG_7D="${C_DIM}7d${C_RESET} ${C7}${B7} ${SEVEN_D_PCT}%${C_RESET}"
+        if [ -n "$SEVEN_D_RESET_AT" ]; then
+            UNTIL7=$(fmt_until $(( SEVEN_D_RESET_AT - NOW_TS )))
+            SEG_7D="${SEG_7D} ${C_DIM}(${UNTIL7})${C_RESET}"
+        fi
+        BITS+=("$SEG_7D")
     fi
 fi
 

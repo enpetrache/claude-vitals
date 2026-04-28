@@ -15,7 +15,7 @@ Warm Claude-themed palette (truecolor), terminal-native glyphs, dim `│` divide
 - **Cumulative session tokens** in / out, in human format (`1.2M`, `12.3k`).
 - **Context window bar** with percent — coloured by threshold (sage / amber / red).
 - **Wall-clock duration** since session start.
-- **5-hour and 7-day rate-limit bars** (Pro/Max subscribers).
+- **5-hour and 7-day rate-limit bars** with time until reset in dim parens (Pro/Max subscribers), e.g. `5h ████░ 90% (4h17m)`.
 
 Single bash script, single dependency (`jq`). Runs only in your terminal — no network, no telemetry.
 
@@ -67,6 +67,7 @@ Claude Code's [statusLine](https://code.claude.com/docs/en/statusline) feature p
 | Context bar / `%`   | `context_window.used_percentage`                                                 |
 | Duration            | `cost.total_duration_ms`                                                         |
 | `5h` / `7d` bars    | `rate_limits.five_hour.used_percentage`, `rate_limits.seven_day.used_percentage` |
+| `(4h17m)` reset     | `rate_limits.five_hour.resets_at`, `rate_limits.seven_day.resets_at` (Unix epoch) |
 
 Git status is cached in `/tmp/claude-vitals-git-<session_id>` for ~5 seconds so large repos stay responsive.
 
