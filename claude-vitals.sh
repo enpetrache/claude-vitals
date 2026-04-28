@@ -233,8 +233,8 @@ if [ "$NO_GIT" = "0" ] && [ -n "$CWD" ] && [ -d "$CWD" ]; then
     fi
 fi
 
-# ---------- segment separator (two spaces — clean Claude-warm vibe) ----------
-SEP="  "
+# ---------- segment separator: dim vertical bar with breathing room ----------
+SEP="  ${C_DIM}│${C_RESET}  "
 
 # ---------- line 1: session header ----------
 HEADER_BITS=()
@@ -285,5 +285,7 @@ for ((i=0; i<${#METRIC_BITS[@]}; i++)); do
 done
 
 # ---------- output ----------
+# Leading blank line gives vertical breathing room from Claude's UI rows.
+printf '\n'
 printf '%b\n' "$LINE1"
 printf '%b\n' "$LINE2"
