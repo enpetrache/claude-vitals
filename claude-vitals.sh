@@ -226,8 +226,10 @@ for ((i=0; i<${#BITS[@]}; i++)); do
 done
 
 # ---------- output ----------
-# Leading blank row separates from the row above; trailing blank row
-# pushes Claude Code's "bypass permissions" indicator one row down.
+# Leading blank row separates from the row above. The trailing row uses
+# a zero-width space (U+200B) so Claude Code's rstrip-style trimming of
+# the statusline output doesn't collapse it — that would re-glue the
+# 'bypass permissions on' indicator to our last data row.
 printf '\n'
 printf '%b\n' "$LINE"
-printf '\n'
+printf '\xe2\x80\x8b\n'
