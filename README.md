@@ -1,5 +1,8 @@
 # claude-vitals
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![Platform: Linux · macOS · Windows (Git Bash)](https://img.shields.io/badge/platform-Linux%20%C2%B7%20macOS%20%C2%B7%20Windows%20(Git%20Bash)-lightgrey.svg)](#supported-platforms)
+
 > **A single-line, always-on health bar for your Claude Code session — context, branch, tokens, duration, and rate limits.**
 
 ```
