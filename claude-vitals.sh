@@ -30,20 +30,22 @@ NO_RATE="${CLAUDE_VITALS_NO_RATE:-0}"
 NO_CACHE="${CLAUDE_VITALS_NO_CACHE:-0}"
 NO_COLOR="${CLAUDE_VITALS_NO_COLOR:-${NO_COLOR:-0}}"
 
-# ---------- ANSI ----------
+# ---------- palette (Claude warm theme, truecolor) ----------
 if [ "$NO_COLOR" = "0" ]; then
     C_RESET=$'\033[0m'
-    C_DIM=$'\033[2m'
     C_BOLD=$'\033[1m'
-    C_CYAN=$'\033[36m'
-    C_GREEN=$'\033[32m'
-    C_YELLOW=$'\033[33m'
-    C_RED=$'\033[31m'
-    C_MAGENTA=$'\033[35m'
-    C_BLUE=$'\033[34m'
+    C_BRAND=$'\033[38;2;201;100;66m'    # #c96442 — Claude orange
+    C_BRAND_LT=$'\033[38;2;232;178;152m' # #e8b298 — light Claude orange
+    C_AMBER=$'\033[38;2;212;163;115m'    # #d4a373 — warm amber
+    C_SAGE=$'\033[38;2;156;175;136m'     # #9caf88 — warm sage (low/ok)
+    C_REDISH=$'\033[38;2;196;69;69m'     # #c44545 — warm red (high)
+    C_DIM=$'\033[38;2;132;118;102m'      # #847666 — warm dim gray
+    C_SOFT=$'\033[38;2;180;160;140m'     # #b4a08c — soft beige
+    C_CACHE=$'\033[38;2;180;200;220m'    # #b4c8dc — cool blue (cache, contrast)
 else
-    C_RESET=''; C_DIM=''; C_BOLD=''
-    C_CYAN=''; C_GREEN=''; C_YELLOW=''; C_RED=''; C_MAGENTA=''; C_BLUE=''
+    C_RESET=''; C_BOLD=''
+    C_BRAND=''; C_BRAND_LT=''; C_AMBER=''; C_SAGE=''; C_REDISH=''
+    C_DIM=''; C_SOFT=''; C_CACHE=''
 fi
 
 # ---------- helpers ----------
@@ -81,9 +83,9 @@ fmt_duration() {
 # choose color by percent (0-100), green/yellow/red threshold
 color_for_pct() {
     local pct="${1:-0}"
-    if [ "$pct" -ge 90 ]; then printf '%s' "$C_RED"
-    elif [ "$pct" -ge 70 ]; then printf '%s' "$C_YELLOW"
-    else printf '%s' "$C_GREEN"
+    if [ "$pct" -ge 90 ]; then printf '%s' "$C_REDISH"
+    elif [ "$pct" -ge 70 ]; then printf '%s' "$C_AMBER"
+    else printf '%s' "$C_SAGE"
     fi
 }
 
@@ -115,9 +117,11 @@ truncate_str() {
 SESSION_ID="$(j '.session_id')"
 [ -z "$SESSION_ID" ] && SESSION_ID="default"
 
-MODEL="$(j '.model.display_name')"
-[ -z "$MODEL" ] && MODEL="$(j '.model.id')"
-[ -z "$MODEL" ] && MODEL="?"
+MODEL_FULL="$(j '.model.display_name')"
+[ -z "$MODEL_FULL" ] && MODEL_FULL="$(j '.model.id')"
+[ -z "$MODEL_FULL" ] && MODEL_FULL="?"
+# Strip version + tags: "Opus 4.7 (1M context)" -> "Opus".
+MODEL="${MODEL_FULL%% *}"
 
 EFFORT="$(j '.effort.level')"
 THINKING="$(j '.thinking.enabled')"
@@ -180,13 +184,13 @@ if [ "$NO_CACHE" = "0" ]; then
         if [ "$REMAINING" -gt 0 ]; then
             M=$(( REMAINING / 60 ))
             S=$(( REMAINING % 60 ))
-            if [ "$REMAINING" -lt 10 ]; then CACHE_COLOR="$C_RED"
-            elif [ "$REMAINING" -lt 60 ]; then CACHE_COLOR="$C_YELLOW"
-            else CACHE_COLOR="$C_CYAN"
+            if [ "$REMAINING" -lt 10 ]; then CACHE_COLOR="$C_REDISH"
+            elif [ "$REMAINING" -lt 60 ]; then CACHE_COLOR="$C_AMBER"
+            else CACHE_COLOR="$C_CACHE"
             fi
-            CACHE_SEGMENT=$(printf '%s⚡cache %d:%02d%s' "$CACHE_COLOR" "$M" "$S" "$C_RESET")
+            CACHE_SEGMENT=$(printf '%scache %d:%02d%s' "$CACHE_COLOR" "$M" "$S" "$C_RESET")
         else
-            CACHE_SEGMENT=$(printf '%s⚡cache expired%s' "$C_DIM" "$C_RESET")
+            CACHE_SEGMENT=$(printf '%scache expired%s' "$C_DIM" "$C_RESET")
         fi
     fi
 fi
@@ -218,43 +222,45 @@ if [ "$NO_GIT" = "0" ] && [ -n "$CWD" ] && [ -d "$CWD" ]; then
         IFS='|' read -r G_BRANCH G_STAGED G_MODIFIED < "$GIT_CACHE" || true
         if [ -n "${G_BRANCH:-}" ]; then
             G_BRANCH_T="$(truncate_str "$G_BRANCH" 24)"
-            GIT_SEGMENT=$(printf '%s🌿 %s%s' "$C_MAGENTA" "$G_BRANCH_T" "$C_RESET")
+            GIT_SEGMENT=$(printf '%s⎇ %s%s' "$C_BRAND" "$G_BRANCH_T" "$C_RESET")
             if [ "${G_STAGED:-0}" -gt 0 ]; then
-                GIT_SEGMENT="${GIT_SEGMENT} ${C_GREEN}+${G_STAGED}${C_RESET}"
+                GIT_SEGMENT="${GIT_SEGMENT} ${C_SAGE}+${G_STAGED}${C_RESET}"
             fi
             if [ "${G_MODIFIED:-0}" -gt 0 ]; then
-                GIT_SEGMENT="${GIT_SEGMENT} ${C_YELLOW}~${G_MODIFIED}${C_RESET}"
+                GIT_SEGMENT="${GIT_SEGMENT} ${C_AMBER}~${G_MODIFIED}${C_RESET}"
             fi
         fi
     fi
 fi
 
+# ---------- segment separator (two spaces — clean Claude-warm vibe) ----------
+SEP="  "
+
 # ---------- line 1: session header ----------
 HEADER_BITS=()
-MODEL_TAG="${C_BOLD}${C_CYAN}${MODEL}${C_RESET}"
-[ -n "$EFFORT" ] && MODEL_TAG="${MODEL_TAG}${C_DIM}·${EFFORT}${C_RESET}"
-[ "$THINKING" = "true" ] && MODEL_TAG="${MODEL_TAG}${C_DIM}·🧠${C_RESET}"
-HEADER_BITS+=("[${MODEL_TAG}]")
-HEADER_BITS+=("📁 $(truncate_str "$DIR_NAME" 24)")
+MODEL_TAG="${C_BOLD}${C_BRAND}${MODEL}${C_RESET}"
+[ -n "$EFFORT" ] && MODEL_TAG="${MODEL_TAG} ${C_DIM}${EFFORT}${C_RESET}"
+[ "$THINKING" = "true" ] && MODEL_TAG="${MODEL_TAG} ${C_BRAND_LT}✦${C_RESET}"
+HEADER_BITS+=("$MODEL_TAG")
+HEADER_BITS+=("${C_SOFT}$(truncate_str "$DIR_NAME" 28)${C_RESET}")
 [ -n "$GIT_SEGMENT" ] && HEADER_BITS+=("$GIT_SEGMENT")
 TOK_IN_F="$(fmt_tokens "$TOTAL_IN")"
 TOK_OUT_F="$(fmt_tokens "$TOTAL_OUT")"
 HEADER_BITS+=("${C_DIM}${TOK_IN_F}↑ ${TOK_OUT_F}↓${C_RESET}")
 
-# join with " · "
 LINE1=""
 for ((i=0; i<${#HEADER_BITS[@]}; i++)); do
-    if [ $i -gt 0 ]; then LINE1="${LINE1} ${C_DIM}·${C_RESET} "; fi
+    if [ $i -gt 0 ]; then LINE1="${LINE1}${SEP}"; fi
     LINE1="${LINE1}${HEADER_BITS[$i]}"
 done
 
 # ---------- line 2: live metrics ----------
 CTX_COLOR="$(color_for_pct "$CTX_PCT")"
 CTX_BAR="$(make_bar "$CTX_PCT" 10)"
-CTX_SEG="${CTX_COLOR}${CTX_BAR}${C_RESET} ${CTX_COLOR}${CTX_PCT}%${C_RESET} ${C_DIM}ctx${C_RESET}"
+CTX_SEG="${CTX_COLOR}${CTX_BAR}${C_RESET} ${CTX_COLOR}${CTX_PCT}%${C_RESET}"
 
-COST_SEG="$(printf '%s$%.2f%s' "$C_GREEN" "$COST" "$C_RESET")"
-DUR_SEG="${C_DIM}⏱ $(fmt_duration "$DURATION_MS")${C_RESET}"
+COST_SEG="$(printf '%s$%.2f%s' "$C_BRAND" "$COST" "$C_RESET")"
+DUR_SEG="${C_DIM}$(fmt_duration "$DURATION_MS")${C_RESET}"
 
 METRIC_BITS=("$CTX_SEG" "$COST_SEG" "$DUR_SEG")
 [ -n "$CACHE_SEGMENT" ] && METRIC_BITS+=("$CACHE_SEGMENT")
@@ -262,19 +268,19 @@ METRIC_BITS=("$CTX_SEG" "$COST_SEG" "$DUR_SEG")
 if [ "$NO_RATE" = "0" ]; then
     if [ -n "$FIVE_H_PCT" ]; then
         C5="$(color_for_pct "$FIVE_H_PCT")"
-        B5="$(make_bar "$FIVE_H_PCT" 5 '▓' '░')"
-        METRIC_BITS+=("${C_DIM}5h${C_RESET} ${C5}${B5}${C_RESET} ${C5}${FIVE_H_PCT}%${C_RESET}")
+        B5="$(make_bar "$FIVE_H_PCT" 5)"
+        METRIC_BITS+=("${C_DIM}5h${C_RESET} ${C5}${B5} ${FIVE_H_PCT}%${C_RESET}")
     fi
     if [ -n "$SEVEN_D_PCT" ]; then
         C7="$(color_for_pct "$SEVEN_D_PCT")"
-        B7="$(make_bar "$SEVEN_D_PCT" 5 '▓' '░')"
-        METRIC_BITS+=("${C_DIM}7d${C_RESET} ${C7}${B7}${C_RESET} ${C7}${SEVEN_D_PCT}%${C_RESET}")
+        B7="$(make_bar "$SEVEN_D_PCT" 5)"
+        METRIC_BITS+=("${C_DIM}7d${C_RESET} ${C7}${B7} ${SEVEN_D_PCT}%${C_RESET}")
     fi
 fi
 
 LINE2=""
 for ((i=0; i<${#METRIC_BITS[@]}; i++)); do
-    if [ $i -gt 0 ]; then LINE2="${LINE2} ${C_DIM}·${C_RESET} "; fi
+    if [ $i -gt 0 ]; then LINE2="${LINE2}${SEP}"; fi
     LINE2="${LINE2}${METRIC_BITS[$i]}"
 done
 
