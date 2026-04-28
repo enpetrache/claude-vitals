@@ -1,0 +1,40 @@
+{
+  "cwd": "/home/user/my-repo",
+  "session_id": "test-session-full",
+  "transcript_path": "/tmp/transcript.jsonl",
+  "model": { "id": "claude-opus-4-7", "display_name": "Opus" },
+  "workspace": {
+    "current_dir": "/home/user/my-repo",
+    "project_dir": "/home/user/my-repo",
+    "added_dirs": []
+  },
+  "version": "2.1.90",
+  "output_style": { "name": "default" },
+  "cost": {
+    "total_cost_usd": 1.2356,
+    "total_duration_ms": 738000,
+    "total_api_duration_ms": 23400,
+    "total_lines_added": 156,
+    "total_lines_removed": 23
+  },
+  "context_window": {
+    "total_input_tokens": 152340,
+    "total_output_tokens": 45213,
+    "context_window_size": 200000,
+    "used_percentage": 78,
+    "remaining_percentage": 22,
+    "current_usage": {
+      "input_tokens": 8500,
+      "output_tokens": 1200,
+      "cache_creation_input_tokens": 5000,
+      "cache_read_input_tokens": 130000
+    }
+  },
+  "exceeds_200k_tokens": false,
+  "effort": { "level": "high" },
+  "thinking": { "enabled": true },
+  "rate_limits": {
+    "five_hour":  { "used_percentage": 41.2, "resets_at": 1738425600 },
+    "seven_day": { "used_percentage": 23.5, "resets_at": 1738857600 }
+  }
+}
