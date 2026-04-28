@@ -40,11 +40,10 @@ if [ "$NO_COLOR" = "0" ]; then
     C_REDISH=$'\033[38;2;196;69;69m'     # #c44545 — warm red (high)
     C_DIM=$'\033[38;2;132;118;102m'      # #847666 — warm dim gray
     C_SOFT=$'\033[38;2;180;160;140m'     # #b4a08c — soft beige
-    C_CACHE=$'\033[38;2;180;200;220m'    # #b4c8dc — cool blue (cache, contrast)
 else
     C_RESET=''; C_BOLD=''
     C_BRAND=''; C_BRAND_LT=''; C_AMBER=''; C_SAGE=''; C_REDISH=''
-    C_DIM=''; C_SOFT=''; C_CACHE=''
+    C_DIM=''; C_SOFT=''
 fi
 
 # ---------- helpers ----------
@@ -173,9 +172,10 @@ if [ "$NO_GIT" = "0" ] && [ -n "$CWD" ] && [ -d "$CWD" ]; then
     GIT_CACHE="/tmp/claude-vitals-git-${SESSION_ID}"
     NEED_REFRESH=1
     if [ -f "$GIT_CACHE" ]; then
-        if [ -n "$(find "$GIT_CACHE" -mmin -0.084 2>/dev/null)" ]; then
-            NEED_REFRESH=0
-        fi
+        # GNU stat: -c %Y. BSD/macOS stat: -f %m. Try both, fall back to 0 (stale).
+        MTIME=$(stat -c %Y "$GIT_CACHE" 2>/dev/null || stat -f %m "$GIT_CACHE" 2>/dev/null || echo 0)
+        AGE=$(( $(date +%s) - MTIME ))
+        [ "$AGE" -lt 5 ] && NEED_REFRESH=0
     fi
     if [ "$NEED_REFRESH" = "1" ]; then
         (

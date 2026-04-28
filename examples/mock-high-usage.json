@@ -2,29 +2,19 @@
   "cwd": "/home/user/big-project",
   "session_id": "test-session-high",
   "transcript_path": "/tmp/transcript.jsonl",
-  "model": { "id": "claude-opus-4-7", "display_name": "Opus" },
+  "model": { "id": "claude-opus-4-7", "display_name": "Opus 4.7 (1M context)" },
   "workspace": { "current_dir": "/home/user/big-project", "project_dir": "/home/user/big-project", "added_dirs": [] },
   "version": "2.1.90",
   "output_style": { "name": "default" },
   "cost": {
-    "total_cost_usd": 14.7821,
-    "total_duration_ms": 4275000,
-    "total_api_duration_ms": 198400,
-    "total_lines_added": 2340,
-    "total_lines_removed": 870
+    "total_duration_ms": 4275000
   },
   "context_window": {
     "total_input_tokens": 1234567,
     "total_output_tokens": 345678,
     "context_window_size": 200000,
     "used_percentage": 94,
-    "remaining_percentage": 6,
-    "current_usage": {
-      "input_tokens": 15000,
-      "output_tokens": 3000,
-      "cache_creation_input_tokens": 8000,
-      "cache_read_input_tokens": 165000
-    }
+    "remaining_percentage": 6
   },
   "exceeds_200k_tokens": false,
   "effort": { "level": "max" },

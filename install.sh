@@ -23,6 +23,15 @@ warn() { printf '%bclaude-vitals%b %b!%b %s\n' "$C_BOLD" "$C_RESET" "$C_YELLOW" 
 err()  { printf '%bclaude-vitals%b %b✖%b %s\n' "$C_BOLD" "$C_RESET" "$C_RED" "$C_RESET" "$1" >&2; }
 ok()   { printf '%bclaude-vitals%b %b✓%b %s\n' "$C_BOLD" "$C_RESET" "$C_GREEN" "$C_RESET" "$1"; }
 
+# ---------- check bash version ----------
+if [ -z "${BASH_VERSINFO:-}" ] || [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+    err "bash 4 or newer is required (you have ${BASH_VERSION:-unknown})."
+    case "$(uname -s)" in
+        Darwin) printf '   macOS ships bash 3 — install bash 5 with: %sbrew install bash%s\n' "$C_BOLD" "$C_RESET" ;;
+    esac
+    exit 1
+fi
+
 # ---------- locate jq ----------
 JQ_BIN=""
 if command -v jq >/dev/null 2>&1; then

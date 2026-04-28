@@ -25,25 +25,33 @@ Single bash script, single dependency (`jq`). Runs only in your terminal — no 
 curl -fsSL https://raw.githubusercontent.com/enpetrache/claude-vitals/main/install.sh | bash
 ```
 
+The installer:
+
+- drops `claude-vitals.sh` into `~/.claude/claude-vitals/`,
+- adds a `statusLine` block to `~/.claude/settings.json` (existing keys are preserved; any prior `statusLine` is backed up next to the file), and
+- sets `refreshInterval: 5` so time-based segments tick while you're idle.
+
 Then restart Claude Code (or open a new session). Accept the workspace trust prompt the first time.
+
+> **Windows**: run the same one-liner from **Git Bash** — that's the shell Claude Code itself uses to invoke statusLine commands on Windows.
 
 ### Manual install
 
 1. Make sure `jq` is on your PATH (`brew install jq` / `sudo apt install jq`).
 2. Copy `claude-vitals.sh` to `~/.claude/claude-vitals/claude-vitals.sh` and `chmod +x` it.
-3. Add this to `~/.claude/settings.json`:
+3. Add this to `~/.claude/settings.json` (replace `/home/you` with your actual home; the auto-installer writes the absolute path):
    ```json
    {
      "statusLine": {
        "type": "command",
-       "command": "~/.claude/claude-vitals/claude-vitals.sh",
+       "command": "/home/you/.claude/claude-vitals/claude-vitals.sh",
        "padding": 1,
        "refreshInterval": 5
      }
    }
    ```
 
-`refreshInterval: 5` keeps the duration ticking while you are idle. Drop it if you only want updates after assistant messages.
+Drop `refreshInterval` if you only want updates after assistant messages.
 
 ## Customise
 
@@ -75,13 +83,15 @@ Git status is cached in `/tmp/claude-vitals-git-<session_id>` for ~5 seconds so 
 
 - **The bar is blank** — run `claude --debug` and look for the statusLine command's exit code and stderr. Usually it is the workspace trust prompt; restart Claude Code and accept it.
 - **`jq: command not found`** — install jq.
+- **`bash 4+ required` (macOS)** — Apple still ships bash 3.2; run `brew install bash` and re-run the installer.
 - **No `5h` / `7d` bars** — those fields are only present for Pro/Max subscribers, after the first API response.
 - **Want different thresholds / colours** — edit `claude-vitals.sh`; the colour and threshold logic is in `color_for_pct()` near the top.
 
-## Tested with
+## Supported platforms
 
-- Claude Code 2.1.x on Linux and macOS (`bash` 4+ and `bash` 5).
-- Both single-window and tmux sessions.
+- **Linux**, **macOS**, and **Windows via Git Bash** — the same shell Claude Code itself uses to run statusLine commands. Requires bash 4+ (so on macOS, install with `brew install bash` since the system ships bash 3.2).
+- Best in a terminal that supports 24-bit truecolor (modern Windows Terminal, iTerm2, kitty, GNOME Terminal, VS Code's integrated terminal). Without truecolor, set `CLAUDE_VITALS_NO_COLOR=1`.
+- tmux sessions work fine.
 
 ## License
 
