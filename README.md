@@ -5,11 +5,9 @@
 
 > **A single-line, always-on health bar for your Claude Code session — context, branch, tokens, duration, and rate limits.**
 
-```
-Opus high ✦  │  ⎇ main ~1  │  142.3k↑ 95.2k↓  │  ▓▓▓▓▓▓░░░░ 60%  │  51m12s  │  5h ▓▓▓▓░ 88% (4h17m)  │  7d ▓▓░░░ 23% (2d 14h)
-```
+![claude-vitals statusline preview](image-git/statusline-preview.jpeg)
 
-> The block above is a plain-text mockup; in the terminal the bars are **coloured** by threshold (sage → amber → red) and the dividers are dim warm-gray. This README sample uses `▓░` instead of `█░` because heavy block characters look unbalanced without colour.
+> In the terminal the bars are **coloured** by threshold (sage → amber → red) and the dividers are dim warm-gray.
 
 Warm Claude-themed palette (truecolor), terminal-native glyphs, dim `│` dividers between segments. Best in a terminal with truecolor support and a font that includes `⎇` and `✦` (most modern terminals do).
 
